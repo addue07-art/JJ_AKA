@@ -18,6 +18,7 @@ def fetch_range(stock_id, start_date, end_date, single_day=False):
     else:
         dt_end = datetime.strptime(end_date, "%Y-%m-%d").date()
         end_date = (dt_end + timedelta(days=1)).strftime("%Y-%m-%d")
+
     for suffix in [".TW", ".TWO"]:
         try:
             df = yf.download(
@@ -64,8 +65,38 @@ mode = st.radio("查詢模式", ["單日查詢", "區間查詢"])
 if mode == "單日查詢":
     date = st.date_input("請選擇日期")
     if st.button("查詢"):
-        res = fetch_range(stock_id, date.strftime("%Y-%m-%d"), date.strftime("%Y-%m-%d"), single_day=True)
+        res = fetch_range(
+            stock_id,
+            date.strftime("%Y-%m-%d"),
+            date.strftime("%Y-%m-%d"),
+            single_day=True
+        )
         if res:
             st.subheader(f"{res['代號']} ({res['市場']})")
             st.write(f"日期：{res['最新交易日']}")
-            st.write(f"收盤價：{res['收盤價']:.
+            st.write(f"收盤價：{res['收盤價']:.2f}")
+            st.write(f"最高價：{res['最高價']:.2f}，最低價：{res['最低價']:.2f}")
+            st.markdown("### 🔢 黃金切割率延伸點位")
+            df = fib_extension_levels(res["最高價"], res["最低價"])
+            st.table(pd.DataFrame(df, columns=["推算方式", "點位", "解讀"]))
+        else:
+            st.error("查詢失敗，可能是代號錯誤或非交易日")
+else:
+    start = st.date_input("開始日期")
+    end = st.date_input("結束日期")
+    if st.button("查詢"):
+        res = fetch_range(
+            stock_id,
+            start.strftime("%Y-%m-%d"),
+            end.strftime("%Y-%m-%d")
+        )
+        if res:
+            st.subheader(f"{res['代號']} ({res['市場']})")
+            st.write(f"區間：{res['區間起']} ~ {res['區間迄']}")
+            st.write(f"收盤價：{res['收盤價']:.2f}")
+            st.write(f"最高價：{res['最高價']:.2f}，最低價：{res['最低價']:.2f}")
+            st.markdown("### 🔢 黃金切割率延伸點位")
+            df = fib_extension_levels(res["最高價"], res["最低價"])
+            st.table(pd.DataFrame(df, columns=["推算方式", "點位", "解讀"]))
+        else:
+            st.error("查詢失敗，可能是代號錯誤或無資料")
