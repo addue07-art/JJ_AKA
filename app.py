@@ -79,7 +79,7 @@ if mode == "單日查詢":
             st.markdown("### 🔢 黃金切割率延伸點位")
             df = fib_extension_levels(res["最高價"], res["最低價"])
             df = pd.DataFrame(df, columns=["推算方式", "點位", "解讀"])
-            df["點位"] = df["點位"].map("{:.2f}".format)
+            df["點位"] = df["點位"].map(lambda x: f"{x:7.2f}")
             st.table(df)
         else:
             st.error("查詢失敗，可能是代號錯誤或非交易日")
@@ -100,7 +100,7 @@ else:
             st.markdown("### 🔢 黃金切割率延伸點位")
             df = fib_extension_levels(res["最高價"], res["最低價"])
             df = pd.DataFrame(df, columns=["推算方式", "點位", "解讀"])
-            df["點位"] = df["點位"].map("{:.2f}".format)
+            df["點位"] = df["點位"].map(lambda x: f"{x:7.2f}")
             st.table(df)
         else:
             st.error("查詢失敗，可能是代號錯誤或無資料")
