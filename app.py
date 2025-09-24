@@ -57,7 +57,19 @@ def fib_extension_levels(high, low):
         ("低點 + 波幅×1.03", low + rng * 1.03, "小幅突破前高，試探新高"),
         ("低點 + 波幅×1.2", low + rng * 1.2, "第一個明顯延伸壓力位"),
         ("低點 + 波幅×1.5", low + rng * 1.5, "關鍵心理整數＋1.5 倍目標壓力"),
+        ("自訂延伸（低點 + 波幅×0.06）", low + rng * 0.06, '<span style="color:orange">微支撐區（自訂）</span>'),
+        ("自訂延伸（低點 + 波幅×0.31）", low + rng * 0.31, '<span style="color:orange">短期反彈目標（自訂）</span>'),
     ]
+
+def render_fib_table(high, low):
+    df = fib_extension_levels(high, low)
+    df = pd.DataFrame(df, columns=["推算方式", "點位", "解讀"])
+    df["點位"] = df["點位"].map(lambda x: f"{x:7.2f}")
+    table_md = "| 推算方式 | 點位 | 解讀 |\n|---|---:|---|\n"
+    for i in range(len(df)):
+        table_md += f"| {df.iloc[i,0]} | {df.iloc[i,1]} | {df.iloc[i,2]} |\n"
+    st.markdown("### 🔢 黃金切割率延伸點位")
+    st.markdown(table_md, unsafe_allow_html=True)
 
 stock_id = st.text_input("請輸入股票代號", value="2330")
 mode = st.radio("查詢模式", ["單日查詢", "區間查詢"])
@@ -76,11 +88,7 @@ if mode == "單日查詢":
             st.write(f"日期：{res['最新交易日']}")
             st.write(f"收盤價：{res['收盤價']:.2f}")
             st.write(f"最高價：{res['最高價']:.2f}，最低價：{res['最低價']:.2f}")
-            st.markdown("### 🔢 黃金切割率延伸點位")
-            df = fib_extension_levels(res["最高價"], res["最低價"])
-            df = pd.DataFrame(df, columns=["推算方式", "點位", "解讀"])
-            df["點位"] = df["點位"].map(lambda x: f"{x:7.2f}")
-            st.table(df)
+            render_fib_table(res["最高價"], res["最低價"])
         else:
             st.error("查詢失敗，可能是代號錯誤或非交易日")
 else:
@@ -97,10 +105,6 @@ else:
             st.write(f"區間：{res['區間起']} ~ {res['區間迄']}")
             st.write(f"收盤價：{res['收盤價']:.2f}")
             st.write(f"最高價：{res['最高價']:.2f}，最低價：{res['最低價']:.2f}")
-            st.markdown("### 🔢 黃金切割率延伸點位")
-            df = fib_extension_levels(res["最高價"], res["最低價"])
-            df = pd.DataFrame(df, columns=["推算方式", "點位", "解讀"])
-            df["點位"] = df["點位"].map(lambda x: f"{x:7.2f}")
-            st.table(df)
+            render_fib_table(res["最高價"], res["最低價"])
         else:
             st.error("查詢失敗，可能是代號錯誤或無資料")
