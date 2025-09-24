@@ -50,38 +50,63 @@ def fetch_range(stock_id, start_date, end_date, single_day=False):
             continue
     return None
 
-def fib_extension_levels(high, low, apply_limit=False):
+def fib_extension_levels(high, low, apply_limit=False, show_short=False):
     rng = high - low
     limit_up = low * 1.10
+    limit_down = high * 0.90
     levels = []
 
-    def annotate(label, value, note, is_custom=False):
-        if apply_limit and value > limit_up:
-            return None
-        if not apply_limit and value > limit_up:
-            note += ' <span style="color:gray">(超出漲幅限制)</span>'
-        elif is_custom:
+    def annotate(label, value, note, style):
+        if apply_limit:
+            if style == "long" and value > limit_up:
+                return None
+            if style == "short" and value < limit_down:
+                return None
+        if style == "custom":
             note = f'<span style="color:orange">{note}</span>'
+        elif style == "short":
+            note = f'<span style="color:blue">{note}</span>'
+        if not apply_limit:
+            if style == "long" and value > limit_up:
+                note += ' <span style="color:gray">(超出漲幅限制)</span>'
+            if style == "short" and value < limit_down:
+                note += ' <span style="color:gray">(超出跌幅限制)</span>'
         return (label, value, note)
 
-    candidates = [
-        ("高點 − 波幅×0.382", high - rng * 0.382, "黃金分割回檔支撐"),
-        ("低點 + 波幅×1.03", low + rng * 1.03, "小幅突破前高，試探新高"),
-        ("低點 + 波幅×1.2", low + rng * 1.2, "第一個明顯延伸壓力位"),
-        ("低點 + 波幅×1.5", low + rng * 1.5, "關鍵心理整數＋1.5 倍目標壓力"),
-        ("自訂延伸（低點 + 波幅×0.06）", low + rng * 0.06, "微支撐區（自訂）", True),
-        ("自訂延伸（低點 + 波幅×0.31）", low + rng * 0.31, "短期反彈目標（自訂）", True),
+    # 多方延伸
+    long_levels = [
+        ("高點 − 波幅×0.382", high - rng * 0.382, "黃金分割回檔支撐", "long"),
+        ("低點 + 波幅×1.03", low + rng * 1.03, "小幅突破前高，試探新高", "long"),
+        ("低點 + 波幅×1.2", low + rng * 1.2, "第一個明顯延伸壓力位", "long"),
+        ("低點 + 波幅×1.5", low + rng * 1.5, "關鍵心理整數＋1.5 倍目標壓力", "long"),
+        ("自訂延伸（低點 + 波幅×0.06）", low + rng * 0.06, "微支撐區（自訂）", "custom"),
+        ("自訂延伸（低點 + 波幅×0.31）", low + rng * 0.31, "短期反彈目標（自訂）", "custom"),
     ]
 
-    for item in candidates:
-        result = annotate(*item) if len(item) == 4 else annotate(*item, False)
+    # 空方延伸
+    short_levels = [
+        ("高點 − 波幅×0.03", high - rng * 0.03, "微幅跌破，測試支撐", "short"),
+        ("高點 − 波幅×0.2", high - rng * 0.2, "第一個空方延伸支撐", "short"),
+        ("高點 − 波幅×0.5", high - rng * 0.5, "中段支撐（空方）", "short"),
+        ("高點 − 波幅×0.618", high - rng * 0.618, "強支撐，空方延伸目標", "short"),
+        ("高點 − 波幅×0.8", high - rng * 0.8, "空方極限支撐", "short"),
+    ]
+
+    for item in long_levels:
+        result = annotate(*item)
         if result:
             levels.append(result)
 
+    if show_short:
+        for item in short_levels:
+            result = annotate(*item)
+            if result:
+                levels.append(result)
+
     return levels
 
-def render_fib_table(high, low, apply_limit):
-    df = fib_extension_levels(high, low, apply_limit)
+def render_fib_table(high, low, apply_limit, show_short):
+    df = fib_extension_levels(high, low, apply_limit, show_short)
     df = pd.DataFrame(df, columns=["推算方式", "點位", "解讀"])
     df["點位"] = df["點位"].map(lambda x: f"{x:7.2f}")
     table_md = "| 推算方式 | 點位 | 解讀 |\n|---|---:|---|\n"
@@ -92,7 +117,8 @@ def render_fib_table(high, low, apply_limit):
 
 stock_id = st.text_input("請輸入股票代號", value="2330")
 mode = st.radio("查詢模式", ["單日查詢", "區間查詢"])
-apply_limit = st.checkbox("只顯示符合漲幅限制的點位", value=False)
+apply_limit = st.checkbox("只顯示符合漲跌幅限制的點位", value=False)
+show_short = st.checkbox("顯示空方切割率", value=False)
 
 if mode == "單日查詢":
     date = st.date_input("請選擇日期")
@@ -108,7 +134,7 @@ if mode == "單日查詢":
             st.write(f"日期：{res['最新交易日']}")
             st.write(f"收盤價：{res['收盤價']:.2f}")
             st.write(f"最高價：{res['最高價']:.2f}，最低價：{res['最低價']:.2f}")
-            render_fib_table(res["最高價"], res["最低價"], apply_limit)
+            render_fib_table(res["最高價"], res["最低價"], apply_limit, show_short)
         else:
             st.error("查詢失敗，可能是代號錯誤或非交易日")
 else:
@@ -125,6 +151,6 @@ else:
             st.write(f"區間：{res['區間起']} ~ {res['區間迄']}")
             st.write(f"收盤價：{res['收盤價']:.2f}")
             st.write(f"最高價：{res['最高價']:.2f}，最低價：{res['最低價']:.2f}")
-            render_fib_table(res["最高價"], res["最低價"], apply_limit)
+            render_fib_table(res["最高價"], res["最低價"], apply_limit, show_short)
         else:
             st.error("查詢失敗，可能是代號錯誤或無資料")
