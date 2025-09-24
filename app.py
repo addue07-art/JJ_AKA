@@ -151,4 +151,5 @@ if mode == "單日查詢":
             st.subheader(f"{res['代號']} ({res['市場']})")
             st.write(f"日期：{res['最新交易日']}")
             st.write(f"收盤價：{res['收盤價']:.2f}")
-            st.write(f"最高價：{res['最高價']:.2f}
+            st.write(f"最高價：{res['最高價']:.2f}，最低價：{res['最低價']:.2f}")
+
